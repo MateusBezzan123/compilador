@@ -1,4 +1,5 @@
-    Acordar(  ){
+    acordar(  ){
+
 pensar()
 falar()
 tentar()
