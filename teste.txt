@@ -1,13 +1,3 @@
-    acordar(  ){
+Acordar({
 
-pensar()
-falar()
-tentar()
-outra_vez
-tarefa()
-liquido
-solido
-gasoso
-mateus
-}
-dormir();
+}dormir();
