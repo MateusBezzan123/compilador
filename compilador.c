@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+int MEMORIA_CONSUMIDA = 0;
+int MAX_MEMORIA_CONSUMIDA = 128000;
+
 int isCondicaoParada(int ascii);
 void limparString(char vetor[]);
 int isPalavraReservada(char *palavra);
@@ -52,6 +55,9 @@ int insere_lista_final(Lista* li, struct simbolo sim);
 int tamanho_lista(Lista* li);
 void imprime_lista(Lista* li); // Esse item para debuggar
 
+void somarMemoriaConsumida(int memoria);
+void mostrarConsumoMemoria();
+
 void main()
 {
     char nomeArquivo[] = "teste.txt";
@@ -70,6 +76,18 @@ void main()
 
     FILE *arquivo;
     arquivo = fopen(nomeArquivo, "r");
+   
+    somarMemoriaConsumida(sizeof(nomeArquivo));
+    somarMemoriaConsumida(sizeof(conteudoLinha));
+    somarMemoriaConsumida(sizeof(ascii));
+    somarMemoriaConsumida(sizeof(acumalador));
+    somarMemoriaConsumida(sizeof(contAcumalador));
+    somarMemoriaConsumida(sizeof(piColchete));
+    somarMemoriaConsumida(sizeof(piParentese));
+    somarMemoriaConsumida(sizeof(piChaves));
+    somarMemoriaConsumida(sizeof(piAspas));
+    somarMemoriaConsumida(sizeof(arquivo));
+    
 
     if (arquivo == NULL)
     {
@@ -79,6 +97,9 @@ void main()
     while ((conteudoLinha = fgetc(arquivo)) != EOF)
     {  
         ascii = (int) conteudoLinha;
+
+        somarMemoriaConsumida(sizeof(ascii));
+
         if(!isVerificarLiteral(ascii)){
          // tratamentoError(numeroLinha,2,conteudoLinha);
          printf("Linha (%d) =>  Literal invalido (%c)\n",numeroLinha, conteudoLinha);
@@ -132,7 +153,7 @@ void main()
             if (strlen(acumalador) > 0) {
                 // printf("Linha (%d)  Encontrou uma condição de parada => (%d) (%c) - (%s)\n", numeroLinha, ascii, conteudoLinha, acumalador);
                 if(isPalavraReservada(acumalador)){
-                    printf("Linha (%d) => Palavra Reservada encontrada (%s)\n", numeroLinha, acumalador);
+                    // printf("Linha (%d) => Palavra Reservada encontrada (%s)\n", numeroLinha, acumalador);
                     limparString(acumalador);
                     contAcumalador = 0;
                 } else{
@@ -162,6 +183,7 @@ void main()
     }
 
     imprime_Pilha(piChaves);
+    mostrarConsumoMemoria();
 }
 
 int isCondicaoParada(int ascii) {
@@ -429,4 +451,34 @@ void imprime_lista(Lista* li){
 
         no = no->prox;
     }
+}
+
+void somarMemoriaConsumida(int memoria){
+    MEMORIA_CONSUMIDA = MEMORIA_CONSUMIDA + memoria;
+
+    float porcentagem = 0;
+	if (MAX_MEMORIA_CONSUMIDA > 0) {
+		porcentagem = (MEMORIA_CONSUMIDA * 100) / MAX_MEMORIA_CONSUMIDA;
+	}
+
+	if (porcentagem > 90 && porcentagem < 99) {
+		printf("A MEMORIA ATUAL ESTA ENTRE 90 %% A 99 %%, MEMORIA ATUAL: %.2f %%\n\n", porcentagem);
+	}
+
+	if (MEMORIA_CONSUMIDA > MAX_MEMORIA_CONSUMIDA) {
+		printf ("MEMORIA ATINGIU O LIMITE PARAMETRIZADO.\n");
+		mostrarConsumoMemoria();
+		exit(0);
+	}
+}
+
+void mostrarConsumoMemoria() {
+	printf("\n---------------------------------------------------------------------\n");
+	printf("\nMEMORIA PARAMETRIZADA: %d bytes\n", MAX_MEMORIA_CONSUMIDA);
+	float porcentagem = 0;
+	if (MAX_MEMORIA_CONSUMIDA > 0) {
+		porcentagem = (MEMORIA_CONSUMIDA * 100) / MAX_MEMORIA_CONSUMIDA;
+	}
+
+	printf("PORCENTAGEM DE MEMORIA => %.2f %% de %i bytes\n\n" , porcentagem, MEMORIA_CONSUMIDA);
 }
