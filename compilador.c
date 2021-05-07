@@ -58,14 +58,24 @@ void imprime_lista(Lista* li); // Esse item para debuggar
 void somarMemoriaConsumida(int memoria);
 void mostrarConsumoMemoria();
 
+int verificarAcordarValido(char *token, int nuLinha);
+void removerQuebraLinha(char *token);
+void removerTabulacao(char* token);
+void removerCaracterEspaco(char *token);
+
 void main()
-{
+{ 
+    int linhaPossuiAcordar = 0;
+    int existeAcordar = 0;
     char nomeArquivo[] = "teste.txt";
     char conteudoLinha;
     int numeroLinha = 1;
     int ascii;
     char acumalador[500];
     int contAcumalador = 0;
+    char linhaCompleta[500];
+    int contLinhaCompleta = 0;
+    
     
     Pilha* piColchete = cria_Pilha();
     Pilha* piParentese = cria_Pilha();
@@ -73,10 +83,14 @@ void main()
     Pilha* piAspas = cria_Pilha();
 
     limparString(acumalador);
+    limparString(linhaCompleta);
+    
 
     FILE *arquivo;
     arquivo = fopen(nomeArquivo, "r");
-   
+
+    somarMemoriaConsumida(sizeof(contLinhaCompleta));
+    somarMemoriaConsumida(sizeof(linhaCompleta));
     somarMemoriaConsumida(sizeof(nomeArquivo));
     somarMemoriaConsumida(sizeof(conteudoLinha));
     somarMemoriaConsumida(sizeof(ascii));
@@ -97,6 +111,10 @@ void main()
     while ((conteudoLinha = fgetc(arquivo)) != EOF)
     {  
         ascii = (int) conteudoLinha;
+        linhaCompleta[contLinhaCompleta] = conteudoLinha;
+        contLinhaCompleta++;
+
+        // puts(linhaCompleta);
 
         somarMemoriaConsumida(sizeof(ascii));
 
@@ -154,6 +172,13 @@ void main()
                 // printf("Linha (%d)  Encontrou uma condição de parada => (%d) (%c) - (%s)\n", numeroLinha, ascii, conteudoLinha, acumalador);
                 if(isPalavraReservada(acumalador)){
                     // printf("Linha (%d) => Palavra Reservada encontrada (%s)\n", numeroLinha, acumalador);
+
+                     
+		            if (strcmp("acordar", acumalador) == 0) {
+			            existeAcordar++;
+                        linhaPossuiAcordar = 1;
+		            }
+
                     limparString(acumalador);
                     contAcumalador = 0;
                 } else{
@@ -165,6 +190,15 @@ void main()
 
         // Proxima linha
         if ((ascii == 10) || (ascii == 13)) { 
+            
+            if (existeAcordar > 1){
+                tratamentoError(0,10,"");
+            }
+
+            if (linhaPossuiAcordar == 1){
+                 verificarAcordarValido(linhaCompleta, numeroLinha);
+            }
+
             if (tamanho_Pilha(piColchete) != 0) {
                 tratamentoError(numeroLinha,6,"");
             }
@@ -175,12 +209,20 @@ void main()
             numeroLinha++;
             limparString(acumalador);
             contAcumalador = 0; 
+            contLinhaCompleta = 0;
+            limparString(linhaCompleta);
+            linhaPossuiAcordar = 0;
         }
     }
 
     if (tamanho_Pilha(piChaves) != 0) {
         tratamentoError(0,4,"");
     }
+
+    if (existeAcordar == 0){
+        tratamentoError(0,9,"");
+    }
+
 
     imprime_Pilha(piChaves);
     mostrarConsumoMemoria();
@@ -286,6 +328,19 @@ void tratamentoError(int numeroLinha, int tipoError, char *conteudoError) {
          break;
     case 8:
          printf("Linha (%d) => Exite  abertura de parentese sem fechamento \n",numeroLinha);
+         exit(0);
+         break;
+    case 9:
+         printf("Nao foi encontrado a funcao 'acordar()' no arquivo!!!\n");
+         exit(0);
+         break;
+    case 10:
+         printf("Ha mais de uma funcao 'acordar()' no arquivo!!!\n");
+         exit(0);
+         break;
+    case 11:
+         removerQuebraLinha(conteudoError);
+         printf("Linha (%d) => declaracao de acordar esta invalida: (%s)\n", numeroLinha, conteudoError);
          exit(0);
          break;
     default:
@@ -482,3 +537,85 @@ void mostrarConsumoMemoria() {
 
 	printf("PORCENTAGEM DE MEMORIA => %.2f %% de %i bytes\n\n" , porcentagem, MEMORIA_CONSUMIDA);
 }
+
+int verificarAcordarValido(char *token, int nuLinha){
+    int i, ascii, count = 0, isInValido = 0;
+	char palavraTmp[500];
+	char palavraProcessada[500];
+	limparString(palavraTmp);
+	limparString(palavraProcessada);
+
+	strcpy(palavraProcessada, token);
+
+	removerQuebraLinha(palavraProcessada);
+	removerTabulacao(palavraProcessada);
+	removerCaracterEspaco(palavraProcessada);
+
+	for (i = 0; i < strlen(palavraProcessada); i++) {
+		ascii = (int) palavraProcessada[i];
+		palavraTmp[count] = (char) ascii;
+		count++;
+
+		if (strcmp(palavraTmp, "acordar(){") == 0) {
+			isInValido = 1;
+			break;
+		}
+	}
+
+	if (!isInValido) {
+		tratamentoError(nuLinha, 11, token);
+	}
+    return 1;
+}
+
+void removerQuebraLinha(char* token) {
+	int i, ascii, count = 0;
+	char tokenTemp[500];
+	limparString(tokenTemp);
+
+	for (i = 0; i < strlen(token); i++) {
+		ascii = (int) token[i];
+
+		if ((ascii != 13) && (ascii != 10)) {
+			tokenTemp[count] = token[i];
+			count++;
+		}
+	}
+
+	strcpy(token, tokenTemp);
+}
+
+void removerTabulacao(char* token) {
+
+	int i, ascii, count = 0;
+	char tokenTemp[500];
+	limparString(tokenTemp);
+
+	for (i = 0; i < strlen(token); i++) {
+		ascii = (int) token[i];
+		// Tab => 9
+		if (ascii != 9) {
+			tokenTemp[count] = token[i];
+			count++;
+		}
+	}
+
+	strcpy(token, tokenTemp);
+}
+
+void removerCaracterEspaco(char *token) {
+	int i, ascii, count = 0;
+	char tokenTemp[500];
+	limparString(tokenTemp);
+
+	for (i = 0; i < strlen(token); i++) {
+		ascii = (int) token[i];
+		// Espaco => 32
+		if (ascii != 32) {
+			tokenTemp[count] = token[i];
+			count++;
+		}
+	}
+
+	strcpy(token, tokenTemp);
+} 

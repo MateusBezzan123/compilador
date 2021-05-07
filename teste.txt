@@ -1,12 +1,3 @@
-acordar()
-acordar()
-acordar()
-acordar()
-acordar()
-acordar()
-acordar()
-acordar()
-acordar()
-acordar(){
+acordar                        {
 
 }dormir();
