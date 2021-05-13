@@ -59,6 +59,7 @@ void somarMemoriaConsumida(int memoria);
 void mostrarConsumoMemoria();
 
 int verificarAcordarValido(char *token, int nuLinha);
+int verificarDormirValido(char *token, int nuLinha);
 void removerQuebraLinha(char *token);
 void removerTabulacao(char* token);
 void removerCaracterEspaco(char *token);
@@ -66,7 +67,9 @@ void removerCaracterEspaco(char *token);
 void main()
 { 
     int linhaPossuiAcordar = 0;
+    int linhaPossuiDormir = 0;
     int existeAcordar = 0;
+    int existeDormir = 0;
     char nomeArquivo[] = "teste.txt";
     char conteudoLinha;
     int numeroLinha = 1;
@@ -101,7 +104,8 @@ void main()
     somarMemoriaConsumida(sizeof(piChaves));
     somarMemoriaConsumida(sizeof(piAspas));
     somarMemoriaConsumida(sizeof(arquivo));
-    
+    somarMemoriaConsumida(sizeof(linhaPossuiDormir));
+    somarMemoriaConsumida(sizeof(existeDormir));
 
     if (arquivo == NULL)
     {
@@ -113,6 +117,8 @@ void main()
         ascii = (int) conteudoLinha;
         linhaCompleta[contLinhaCompleta] = conteudoLinha;
         contLinhaCompleta++;
+
+        //printf("%d - (%c)\n",ascii,conteudoLinha);
 
         // puts(linhaCompleta);
 
@@ -169,14 +175,20 @@ void main()
             // printf("Linha (%d) => (%d) (%c) - (%s)\n", numeroLinha, ascii, conteudoLinha, acumalador);
         } else{
             if (strlen(acumalador) > 0) {
-                // printf("Linha (%d)  Encontrou uma condição de parada => (%d) (%c) - (%s)\n", numeroLinha, ascii, conteudoLinha, acumalador);
+                 //printf("Linha (%d)  Encontrou uma condição de parada => (%d) (%c) - (%s)\n", numeroLinha, ascii, conteudoLinha, acumalador);
                 if(isPalavraReservada(acumalador)){
-                    // printf("Linha (%d) => Palavra Reservada encontrada (%s)\n", numeroLinha, acumalador);
+                     //printf("Linha (%d) => Palavra Reservada encontrada (%s)\n", numeroLinha, acumalador);
 
                      
 		            if (strcmp("acordar", acumalador) == 0) {
 			            existeAcordar++;
                         linhaPossuiAcordar = 1;
+		            }
+                    
+                    // Dormir não está trantando arquivo sem finalizar com quebra de linha ou condição de parada
+                    if (strcmp("dormir", acumalador) == 0) {
+			            existeDormir++;
+                        linhaPossuiDormir = 1;
 		            }
 
                     limparString(acumalador);
@@ -197,6 +209,10 @@ void main()
 
             if (linhaPossuiAcordar == 1){
                  verificarAcordarValido(linhaCompleta, numeroLinha);
+            }
+            
+            if (linhaPossuiDormir == 1){
+                 verificarDormirValido(linhaCompleta, numeroLinha);
             }
 
             if (tamanho_Pilha(piColchete) != 0) {
@@ -221,6 +237,10 @@ void main()
 
     if (existeAcordar == 0){
         tratamentoError(0,9,"");
+    }
+
+    if (existeDormir == 0){
+        tratamentoError(0,12,"");
     }
 
 
@@ -299,11 +319,11 @@ void tratamentoError(int numeroLinha, int tipoError, char *conteudoError) {
         break;
     
     case 1:
-         printf("Linha (%d) =>  Palavra invalida (%s)\n",numeroLinha, conteudoError);
+         printf("Linha (%d) =>  Palavra invalida '%s'\n",numeroLinha, conteudoError);
          exit(0);
          break;
     case 2:
-         printf("Linha (%d) =>  Literal invalido (%s)\n",numeroLinha, conteudoError);
+         printf("Linha (%d) =>  Literal invalido '%s'\n",numeroLinha, conteudoError);
          exit(0);
          break;
     case 3:
@@ -331,16 +351,25 @@ void tratamentoError(int numeroLinha, int tipoError, char *conteudoError) {
          exit(0);
          break;
     case 9:
-         printf("Nao foi encontrado a funcao 'acordar()' no arquivo!!!\n");
+         printf("Nao foi encontrado a funcao 'acordar(){' no arquivo!!!\n");
          exit(0);
          break;
     case 10:
-         printf("Ha mais de uma funcao 'acordar()' no arquivo!!!\n");
+         printf("Ha mais de uma funcao 'acordar(){' no arquivo!!!\n");
          exit(0);
          break;
     case 11:
          removerQuebraLinha(conteudoError);
-         printf("Linha (%d) => declaracao de acordar esta invalida: (%s)\n", numeroLinha, conteudoError);
+         printf("Linha (%d) => declaracao de acordar esta invalida, deveria ser 'acordar(){'. Em '%s'\n", numeroLinha, conteudoError);
+         exit(0);
+         break;
+    case 12:
+         printf("Nao foi encontrado a funcao '}dormir();' no arquivo!!!\n");
+         exit(0);
+         break;
+    case 13:
+         removerQuebraLinha(conteudoError);
+         printf("Linha (%d) => declaracao de dormir esta invalida, deveria ser '}dormir();'. Em '%s'\n", numeroLinha, conteudoError);
          exit(0);
          break;
     default:
@@ -619,3 +648,33 @@ void removerCaracterEspaco(char *token) {
 
 	strcpy(token, tokenTemp);
 } 
+
+int verificarDormirValido(char *token, int nuLinha){
+    int i, ascii, count = 0, isInValido = 0;
+	char palavraTmp[500];
+	char palavraProcessada[500];
+	limparString(palavraTmp);
+	limparString(palavraProcessada);
+
+	strcpy(palavraProcessada, token);
+
+	removerQuebraLinha(palavraProcessada);
+	removerTabulacao(palavraProcessada);
+	removerCaracterEspaco(palavraProcessada);
+
+	for (i = 0; i < strlen(palavraProcessada); i++) {
+		ascii = (int) palavraProcessada[i];
+		palavraTmp[count] = (char) ascii;
+		count++;
+
+		if (strcmp(palavraTmp, "}dormir();") == 0) {
+			isInValido = 1;
+			break;
+		}
+	}
+
+	if (!isInValido) {
+		tratamentoError(nuLinha, 13, token);
+	}
+    return 1;
+}
